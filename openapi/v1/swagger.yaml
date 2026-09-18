@@ -4,6 +4,430 @@ info:
   title: API V1
   version: v1
 paths:
+  "/api/v1/accounts":
+    get:
+      summary: Lists the current user's accounts
+      tags:
+      - Accounts
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: a zero-amount summary rather than none when there are no accounts
+    post:
+      summary: Creates an account
+      tags:
+      - Accounts
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '201':
+          description: account created in current-balance mode has an immediately
+            correct balance
+        '422':
+          description: neither balance field is given
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                currency:
+                  type: string
+                initial_balance:
+                  type: number
+                  nullable: true
+                current_balance:
+                  type: number
+                  nullable: true
+              required:
+              - name
+              - currency
+  "/api/v1/accounts/{code}":
+    parameters:
+    - name: code
+      in: path
+      required: true
+      schema:
+        type: string
+    patch:
+      summary: Updates an account
+      tags:
+      - Accounts
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: account updated, returning the actual record
+        '422':
+          description: currency change rejected once the account has an active transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+        '404':
+          description: a code belonging to a different user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                currency:
+                  type: string
+    delete:
+      summary: Deletes an account
+      tags:
+      - Accounts
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '204':
+          description: account soft-deleted
+        '404':
+          description: a code belonging to a different user
+  "/api/v1/statistics":
+    get:
+      summary: Returns aggregated transaction statistics for an interval and its predecessor
+      tags:
+      - Statistics
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: account_codes
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: payment_method
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: silently excludes an account_code that doesn't belong to current_user
+  "/api/v1/transactions":
+    get:
+      summary: Lists the current user's transactions
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: filter[account_codes][]
+        in: query
+        items:
+          type: string
+        required: false
+        schema:
+          type: array
+      - name: filter[category]
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: filter[payment_method]
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: sort
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: order
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: lists transactions filtered, sorted, and paginated
+        '401':
+          description: missing token
+  "/api/v1/transactions/bulk":
+    patch:
+      summary: Bulk-updates transaction properties
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: updates the selected transactions' bulk-editable attributes
+        '422':
+          description: a disallowed attribute is supplied
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_codes:
+                  type: array
+                  items:
+                    type: string
+                attributes:
+                  type: object
+    delete:
+      summary: Bulk soft-deletes transactions
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: soft-deletes the selected transactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_codes:
+                  type: array
+                  items:
+                    type: string
+  "/api/v1/transactions/bulk/move":
+    post:
+      summary: Bulk-moves transactions to another account
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: moves the selected transactions to the destination account
+        '422':
+          description: the destination account's currency does not match every selected
+            transaction
+        '404':
+          description: the destination account does not belong to the current user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_codes:
+                  type: array
+                  items:
+                    type: string
+                destination_account_code:
+                  type: string
+  "/api/v1/transactions/bulk/export_csv":
+    post:
+      summary: Exports selected transactions as a CSV file
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: returns a CSV attachment of the selected transactions
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_codes:
+                  type: array
+                  items:
+                    type: string
+  "/api/v1/transactions/bulk/generate_report":
+    post:
+      summary: Generates a PDF report for the selected transactions
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: returns a PDF attachment
+        '422':
+          description: the selection is empty
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transaction_codes:
+                  type: array
+                  items:
+                    type: string
+                title:
+                  type: string
+                description:
+                  type: string
+                reporting_currency:
+                  type: string
+  "/api/v1/transactions/import/preview":
+    post:
+      summary: Previews a CSV transaction import
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: a row matching an existing active transaction is marked duplicate
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    type: object
+              required:
+              - rows
+  "/api/v1/transactions/import/commit":
+    post:
+      summary: Commits a previewed CSV transaction import
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: back-derives initial_balance for a first import into a current-balance-mode
+            account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    type: object
+              required:
+              - rows
   "/api/v1/users/create":
     post:
       summary: Creates a user
@@ -113,6 +537,29 @@ paths:
                     type: string
                   details:
                     type: object
+    patch:
+      summary: Updates the current user's currency
+      tags:
+      - Users
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: currency updated
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currency:
+                  type: string
+              required:
+              - currency
 servers:
 - url: https://{defaultHost}
   variables:

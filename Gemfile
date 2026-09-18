@@ -28,6 +28,10 @@ gem "jwt"
 
 gem "hexapdf"
 
+gem "csv"
+
+gem "kaminari"
+
 gem "faraday"
 gem "faraday-retry"
 

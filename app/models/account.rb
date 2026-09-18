@@ -17,6 +17,10 @@ class Account < ApplicationRecord
     transactions.active.sum(:amount)
   end
 
+  def has_transactions?
+    transactions.active.exists?
+  end
+
   private
 
   def assign_code

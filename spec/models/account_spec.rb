@@ -50,6 +50,26 @@ RSpec.describe Account, type: :model do
     end
   end
 
+  context "with #has_transactions?" do
+    let!(:account) { create(:account) }
+
+    it "returns false when the account has no active transactions" do
+      expect(account.has_transactions?).to be false
+    end
+
+    it "returns true when the account has an active transaction" do
+      create(:transaction, account: account)
+
+      expect(account.has_transactions?).to be true
+    end
+
+    it "returns false when the account's only transaction is soft-deleted" do
+      create(:transaction, account: account, deleted_at: Time.current)
+
+      expect(account.has_transactions?).to be false
+    end
+  end
+
   context "with #active_transactions_sum" do
     let!(:account) { create(:account, initial_balance: 100, currency: "usd") }
     let!(:income) { create(:transaction, account: account, amount: 50, currency: "usd") }
