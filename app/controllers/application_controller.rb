@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::API
+  include Authenticatable
+
   rescue_from BaseError do |error|
     render json: error, status: error.http_status
   end
