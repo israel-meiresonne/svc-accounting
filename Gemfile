@@ -1,5 +1,10 @@
 source "https://rubygems.org"
 
+# Pinned below json 3.0, which dropped positional-hash options on JSON.parse
+# and breaks ActiveSupport::JSON.decode (used by Rails to parse a JSON
+# request body) on Rails 8.1.3.1.
+gem "json", "~> 2.17"
+
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # Use postgresql as the database for Active Record

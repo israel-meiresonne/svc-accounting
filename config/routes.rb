@@ -4,6 +4,9 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      post "users/create", to: "/users/api/v1/users#create"
+      post "users/login", to: "/users/api/v1/users#login"
+      get "users/me", to: "/users/api/v1/users#me"
     end
   end
 
