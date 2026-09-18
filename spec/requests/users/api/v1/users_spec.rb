@@ -162,5 +162,30 @@ RSpec.describe "Users API", type: :request do
         run_test!
       end
     end
+
+    patch "Updates the current user's currency" do
+      tags "Users"
+      consumes "application/json"
+      produces "application/json"
+      parameter name: :Authorization, in: :header, type: :string, required: false
+      parameter name: :params, in: :body, schema: {
+        type: :object,
+        properties: { currency: { type: :string } },
+        required: %w[currency]
+      }
+
+      response "200", "currency updated" do
+        let!(:user) { create(:user, email: "jane@example.com", currency: "usd") }
+        let(:Authorization) { "Bearer #{JsonWebTokens::Encode.for(user.code)}" }
+        let(:params) { { currency: "eur" } }
+
+        run_test! do
+          body = JSON.parse(response.body)
+
+          expect(body["user"]).to include("currency" => "eur")
+          expect(user.reload.currency).to eq("eur")
+        end
+      end
+    end
   end
 end

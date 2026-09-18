@@ -7,6 +7,17 @@ Rails.application.routes.draw do
       post "users/create", to: "/users/api/v1/users#create"
       post "users/login", to: "/users/api/v1/users#login"
       get "users/me", to: "/users/api/v1/users#me"
+      patch "users/me", to: "/users/api/v1/users#update_me"
+      resources :accounts, controller: "/accounts/api/v1/accounts", param: :code, only: [ :index, :create, :update, :destroy ]
+      post "transactions/import/preview", to: "/transactions/api/v1/transactions#import_preview"
+      post "transactions/import/commit", to: "/transactions/api/v1/transactions#import_commit"
+      get "transactions", to: "/transactions/api/v1/transactions#index"
+      patch "transactions/bulk", to: "/transactions/api/v1/transactions#bulk_update"
+      delete "transactions/bulk", to: "/transactions/api/v1/transactions#bulk_delete"
+      post "transactions/bulk/move", to: "/transactions/api/v1/transactions#bulk_move"
+      post "transactions/bulk/export_csv", to: "/transactions/api/v1/transactions#bulk_export_csv"
+      post "transactions/bulk/generate_report", to: "/transactions/api/v1/transactions#bulk_generate_report"
+      get "statistics", to: "/transactions/api/v1/statistics#show"
     end
   end
 

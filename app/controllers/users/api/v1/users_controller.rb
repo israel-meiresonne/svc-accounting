@@ -17,6 +17,11 @@ class Users::Api::V1::UsersController < ApplicationController
     render json: { user: UserSerializer.new(current_user) }, status: :ok
   end
 
+  def update_me
+    user = Users::Update.for(current_user, currency: params[:currency])
+    render json: { user: UserSerializer.new(user) }, status: :ok
+  end
+
   private
 
   def user_params

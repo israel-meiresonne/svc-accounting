@@ -6,6 +6,9 @@ class Transaction < ApplicationRecord
   belongs_to :account
   belongs_to :counterparty, class_name: "User"
 
+  delegate :display_name, to: :counterparty, prefix: true
+  delegate :name, to: :account, prefix: true
+
   before_validation :assign_code, on: :create
   before_validation :assign_dedup_hash
 
