@@ -4,6 +4,12 @@ class JsonWebTokens::Configurations::Base
   DEFAULT_EXPIRATION = 7.days
 
   def run
-    { secret: Rails.application.credentials.secret_key_base, expiration: DEFAULT_EXPIRATION }
+    { secret: secret, expiration: DEFAULT_EXPIRATION }
+  end
+
+  private
+
+  def secret
+    ENV.fetch('JWT_SECRET_KEY')
   end
 end
