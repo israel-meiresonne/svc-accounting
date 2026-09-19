@@ -17,7 +17,20 @@ class Currencies::Convert
   end
 
   def rate_to(currency)
-    CurrencyRate.find_by(left: CurrencyRate::CENTRAL_CURRENCY, right: currency)&.rate ||
+    existing_rate(currency) || fetched_rate(currency) ||
       raise(Currencies::Errors::RateUnavailableError.new(details: { currency: currency }))
+  end
+
+  def existing_rate(currency)
+    CurrencyRate.find_by(left: CurrencyRate::CENTRAL_CURRENCY, right: currency)&.rate
+  end
+
+  # The `currencies:fetch_rates` rake task keeps rates fresh for currencies
+  # already in use, but a currency's very first use has no rate row yet to
+  # refresh — so its first conversion always fetches one live rather than
+  # failing until that task next runs.
+  def fetched_rate(currency)
+    Currencies::FetchRate.for(currency)
+    existing_rate(currency)
   end
 end

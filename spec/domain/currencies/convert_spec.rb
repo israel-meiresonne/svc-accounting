@@ -45,8 +45,47 @@ RSpec.describe Currencies::Convert, type: :interactor do
   context "when no rate exists for the needed currency" do
     let(:to) { "eur" }
 
-    it "raises Currencies::Errors::RateUnavailableError" do
-      expect { subject }.to raise_error(Currencies::Errors::RateUnavailableError)
+    around do |example|
+      original_currencylayer_key = ENV["CURRENCYLAYER_API_KEY"]
+      original_freecurrencyapi_key = ENV["FREECURRENCYAPI_API_KEY"]
+      ENV["CURRENCYLAYER_API_KEY"] = "currencylayer_test_key"
+      ENV["FREECURRENCYAPI_API_KEY"] = "freecurrencyapi_test_key"
+
+      example.run
+
+      ENV["CURRENCYLAYER_API_KEY"] = original_currencylayer_key
+      ENV["FREECURRENCYAPI_API_KEY"] = original_freecurrencyapi_key
+    end
+
+    context "and a provider can supply one live" do
+      before do
+        stub_request(:get, "http://apilayer.net/api/live")
+          .with(query: { access_key: "currencylayer_test_key", source: "USD", currencies: "EUR" })
+          .to_return(
+            status: 200,
+            body: { quotes: { USDEUR: 0.8 } }.to_json,
+            headers: { "Content-Type" => "application/json" }
+          )
+      end
+
+      it "fetches and stores the rate on demand instead of raising" do
+        expect(subject.as_json).to eq(amount: "80.00", currency: "eur")
+      end
+    end
+
+    context "and every provider fails to supply one" do
+      before do
+        stub_request(:get, "http://apilayer.net/api/live")
+          .with(query: { access_key: "currencylayer_test_key", source: "USD", currencies: "EUR" })
+          .to_return(status: 500, body: "{}", headers: { "Content-Type" => "application/json" })
+        stub_request(:get, "https://api.freecurrencyapi.com/v1/latest")
+          .with(query: { apikey: "freecurrencyapi_test_key", base_currency: "USD", currencies: "EUR" })
+          .to_return(status: 500, body: "{}", headers: { "Content-Type" => "application/json" })
+      end
+
+      it "still raises Currencies::Errors::RateUnavailableError after attempting a live fetch" do
+        expect { subject }.to raise_error(Currencies::Errors::RateUnavailableError)
+      end
     end
   end
 end
