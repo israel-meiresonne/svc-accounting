@@ -33,6 +33,8 @@ For local development, set these in a `.env` file at the repo root. `dotenv-rail
 |---|---|---|
 | `CURRENCYLAYER_API_KEY` | `Integrations::Currencylayer::Services::FetchRate` | One of the two providers needs a working key |
 | `FREECURRENCYAPI_API_KEY` | `Integrations::Freecurrencyapi::Services::FetchRate` | Same |
+| `PORT` | `config/puma.rb` | No, defaults to 3000 |
+| `FRONTEND_PORT` | `config/initializers/cors.rb`, to allow `svc-accounting-ui`'s origin in development | No, defaults to 3001 |
 | `DATABASE_URL` | Rails' database config | Production only |
 | `RAILS_MAX_THREADS` | Database connection pool size | No, defaults to 5 |
 

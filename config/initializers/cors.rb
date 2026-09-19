@@ -5,12 +5,17 @@
 
 # Read more: https://github.com/cyu/rack-cors
 
-# Rails.application.config.middleware.insert_before 0, Rack::Cors do
-#   allow do
-#     origins "example.com"
-#
-#     resource "*",
-#       headers: :any,
-#       methods: [:get, :post, :put, :patch, :delete, :options, :head]
-#   end
-# end
+# Development only: svc-accounting-ui runs on its own origin (a different
+# port on localhost) and authenticates with a bearer JWT, not cookies, so
+# credentials support isn't needed here.
+if Rails.env.development? || Rails.env.test?
+  Rails.application.config.middleware.insert_before 0, Rack::Cors do
+    allow do
+      origins "http://localhost:#{ENV.fetch('FRONTEND_PORT', 3001)}"
+
+      resource "*",
+        headers: :any,
+        methods: [:get, :post, :put, :patch, :delete, :options, :head]
+    end
+  end
+end
