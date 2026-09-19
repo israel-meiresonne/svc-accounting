@@ -60,6 +60,10 @@ gem "image_processing", "~> 1.2"
 # gem "rack-cors"
 
 group :development, :test do
+  # Loads .env into ENV on boot, for local-only values like the currency
+  # provider API keys (see README's "Environment variables" section).
+  gem "dotenv-rails"
+
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
