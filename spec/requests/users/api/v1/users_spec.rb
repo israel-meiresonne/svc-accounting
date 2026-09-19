@@ -188,4 +188,61 @@ RSpec.describe "Users API", type: :request do
       end
     end
   end
+
+  path "/api/v1/users/counterparties" do
+    get "Searches the counterparties available to the current user" do
+      tags "Users"
+      produces "application/json"
+      parameter name: :Authorization, in: :header, type: :string, required: false
+      parameter name: :q, in: :query, type: :string, required: false
+
+      let!(:user) { create(:user, email: "jane@example.com") }
+      let!(:account) { create(:account, user: user, currency: "usd") }
+      let(:Authorization) { "Bearer #{JsonWebTokens::Encode.for(user.code)}" }
+      let(:q) { "searchable" }
+
+      response "200", "returns contact and company counterparties matching the query" do
+        let!(:contact) { create(:contact, first_name: "Searchable", last_name: "Contact") }
+        let!(:company) { create(:company, company_name: "Searchable Company") }
+        let!(:unrelated_contact) { create(:contact, first_name: "Other", last_name: "Person") }
+
+        run_test! do
+          results = JSON.parse(response.body)["counterparties"]
+
+          expect(results.map { |result| result["code"] }).to contain_exactly(contact.code, company.code)
+          expect(results.map { |result| result["display_name"] }).to contain_exactly("Searchable Contact", "Searchable Company")
+          expect(results.map { |result| result["image"] }).to all(be_nil)
+        end
+      end
+
+      response "200", "includes a user who is already a counterparty on the current user's transaction" do
+        let!(:known_user) { create(:user, first_name: "Searchable", last_name: "Known") }
+        let!(:transaction) { create(:transaction, account: account, counterparty: known_user) }
+
+        run_test! do
+          results = JSON.parse(response.body)["counterparties"]
+
+          expect(results.map { |result| result["code"] }).to include(known_user.code)
+        end
+      end
+
+      response "200", "excludes a user who has never transacted with the current user" do
+        let!(:stranger) { create(:user, first_name: "Searchable", last_name: "Stranger") }
+
+        run_test! do
+          results = JSON.parse(response.body)["counterparties"]
+
+          expect(results.map { |result| result["code"] }).not_to include(stranger.code)
+        end
+      end
+
+      response "401", "no token" do
+        let(:Authorization) { nil }
+
+        schema type: :object, properties: { code: { type: :string }, message: { type: :string }, details: { type: :object } }
+
+        run_test!
+      end
+    end
+  end
 end

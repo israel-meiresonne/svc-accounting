@@ -4,6 +4,22 @@ class Transactions::Api::V1::TransactionsController < ApplicationController
     counterparty_type counterparty_first_name counterparty_last_name counterparty_company_name
     counterparty_email counterparty_code dedup_hash resolution
   ].freeze
+  UPDATABLE_PARAMS = %i[amount category description payment_method occurred_at].freeze
+  COUNTERPARTY_OPTION_PARAMS = %i[type first_name last_name company_name email].freeze
+
+  def create
+    transaction = Transactions::Create.for(**create_attributes)
+    render json: { transaction: TransactionSerializer.new(transaction) }, status: :created
+  end
+
+  def update
+    transaction = Transactions::Update.for(transaction: owned_transaction, attributes: update_attributes)
+    render json: { transaction: TransactionSerializer.new(transaction) }, status: :ok
+  end
+
+  def stats
+    render json: Transactions::CalculateStats.for(account: owned_account, from: params[:from], to: params[:to]), status: :ok
+  end
 
   def import_preview
     rows = Transactions::Csv::Import::Preview.for(user_account: current_user.accounts.active, rows: import_rows)
@@ -65,6 +81,48 @@ class Transactions::Api::V1::TransactionsController < ApplicationController
   end
 
   private
+
+  def create_attributes
+    {
+      account: owned_account,
+      amount: params[:amount],
+      category: params[:category],
+      description: params[:description],
+      payment_method: params[:payment_method],
+      occurred_at: params[:occurred_at],
+      counterparty_id: counterparty_id,
+      counterparty_options: counterparty_options
+    }
+  end
+
+  def update_attributes
+    params.permit(*UPDATABLE_PARAMS).to_h.symbolize_keys.merge(counterparty_attributes)
+  end
+
+  def counterparty_attributes
+    return { counterparty_id: counterparty_id } if params[:counterparty_code].present?
+    return { counterparty_options: counterparty_options } if params[:counterparty_options].present?
+
+    {}
+  end
+
+  def owned_account
+    @owned_account ||= current_user.accounts.active.find_by!(code: params[:account_code])
+  end
+
+  def owned_transaction
+    owned_account.transactions.active.find_by!(code: params[:code])
+  end
+
+  def counterparty_id
+    return if params[:counterparty_code].blank?
+
+    User.find_by!(code: params[:counterparty_code]).id
+  end
+
+  def counterparty_options
+    params[:counterparty_options]&.permit(*COUNTERPARTY_OPTION_PARAMS)&.to_h&.symbolize_keys
+  end
 
   def import_rows
     params.require(:rows).map { |row| row.permit(*IMPORT_ROW_PARAMS).to_h.symbolize_keys }
