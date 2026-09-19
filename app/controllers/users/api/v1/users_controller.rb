@@ -22,7 +22,16 @@ class Users::Api::V1::UsersController < ApplicationController
     render json: { user: UserSerializer.new(user) }, status: :ok
   end
 
+  def counterparties
+    found = Users::SearchCounterparties.for(user: current_user, query: params[:q])
+    render json: { counterparties: found.map { |counterparty| counterparty_json(counterparty) } }, status: :ok
+  end
+
   private
+
+  def counterparty_json(counterparty)
+    { code: counterparty.code, display_name: counterparty.display_name, image: counterparty.image }
+  end
 
   def user_params
     params.permit(:first_name, :last_name, :email, :password, :password_confirmation, :currency).to_h.symbolize_keys

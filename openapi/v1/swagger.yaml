@@ -173,8 +173,74 @@ paths:
           type: string
       responses:
         '200':
-          description: silently excludes an account_code that doesn't belong to current_user
+          description: excludes an account_code that doesn't belong to current_user
   "/api/v1/transactions":
+    post:
+      summary: Creates a transaction
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '201':
+          description: ignores a posted currency and stores the account's currency
+        '404':
+          description: account code belonging to another user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+        '401':
+          description: no token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_code:
+                  type: string
+                amount:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                payment_method:
+                  type: string
+                occurred_at:
+                  type: string
+                counterparty_code:
+                  type: string
+                counterparty_options:
+                  type: object
+              required:
+              - account_code
+              - amount
+              - payment_method
+              - occurred_at
     get:
       summary: Lists the current user's transactions
       tags:
@@ -237,6 +303,118 @@ paths:
           description: lists transactions filtered, sorted, and paginated
         '401':
           description: missing token
+  "/api/v1/transactions/{code}":
+    parameters:
+    - name: code
+      in: path
+      required: true
+      schema:
+        type: string
+    patch:
+      summary: Updates a transaction
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: ignores a posted currency
+        '404':
+          description: unknown transaction code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                account_code:
+                  type: string
+                amount:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                payment_method:
+                  type: string
+                occurred_at:
+                  type: string
+                counterparty_code:
+                  type: string
+                counterparty_options:
+                  type: object
+              required:
+              - account_code
+  "/api/v1/transactions/stats":
+    get:
+      summary: Returns income, expense and net totals for one account over a range
+      tags:
+      - Transactions
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: account_code
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: includes a February 29 boundary in a leap year
+        '404':
+          description: unknown account code
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
+        '401':
+          description: no token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
   "/api/v1/transactions/bulk":
     patch:
       summary: Bulk-updates transaction properties
@@ -560,6 +738,38 @@ paths:
                   type: string
               required:
               - currency
+  "/api/v1/users/counterparties":
+    get:
+      summary: Searches the counterparties available to the current user
+      tags:
+      - Users
+      parameters:
+      - name: Authorization
+        in: header
+        required: false
+        schema:
+          type: string
+      - name: q
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: excludes a user who has never transacted with the current user
+        '401':
+          description: no token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
+                  message:
+                    type: string
+                  details:
+                    type: object
 servers:
 - url: https://{defaultHost}
   variables:
