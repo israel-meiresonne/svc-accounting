@@ -173,6 +173,37 @@ RSpec.describe "Transactions CSV Import API", type: :request do
         end
       end
 
+      response "200", "imported_count counts committed rows, not distinct accounts touched" do
+        let!(:counterparty) { create(:contact, email: "new@example.com") }
+        let(:params) do
+          {
+            rows: [
+              {
+                account_code: account.code,
+                occurred_at: "2026-01-05T00:00:00Z",
+                amount: 50,
+                currency: "usd",
+                payment_method: "cash",
+                counterparty_code: counterparty.code
+              },
+              {
+                account_code: account.code,
+                occurred_at: "2026-01-06T00:00:00Z",
+                amount: 30,
+                currency: "usd",
+                payment_method: "cash",
+                counterparty_code: counterparty.code
+              }
+            ]
+          }
+        end
+
+        run_test! do
+          expect(Transaction.active.where(account: account).count).to eq(2)
+          expect(JSON.parse(response.body)).to eq("imported_count" => 2)
+        end
+      end
+
       response "200", "a duplicate row resolved as add_anyway inserts a second transaction" do
         let!(:counterparty) { create(:contact, email: "landlord@example.com") }
         let!(:existing_transaction) do
