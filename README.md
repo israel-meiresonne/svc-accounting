@@ -35,8 +35,10 @@ For local development, set these in a `.env` file at the repo root. `dotenv-rail
 | `FREECURRENCYAPI_API_KEY` | `Integrations::Freecurrencyapi::Services::FetchRate` | Same |
 | `PORT` | `config/puma.rb` | No, defaults to 3000 |
 | `FRONTEND_PORT` | `config/initializers/cors.rb`, to allow `svc-accounting-ui`'s origin in development | No, defaults to 3001 |
-| `DATABASE_URL` | Rails' database config | Production only |
+| `DATABASE_URL` | Rails' database config (`config/database.yml`) | No — without it, development/test connect to a local Postgres over its Unix socket with no host, port, username, or password |
 | `RAILS_MAX_THREADS` | Database connection pool size | No, defaults to 5 |
+
+Rails merges `DATABASE_URL` on top of whatever `config/database.yml` sets for the current environment, so it's the one place to centralize host, port, username, and password (e.g. `postgres://user:pass@localhost:5432`) without editing YAML — CI sets it this way already (`.github/workflows/ci.yml`). Any part left out of the URL (the database name, if you omit a path) falls back to the value already in `database.yml`.
 
 ## Testing and linting
 
