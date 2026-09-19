@@ -5,22 +5,20 @@ class Transactions::Csv::Import::Commit
   initialize_with_keyword_params :user_account, :rows
 
   def run
-    touched_accounts = commit_all_rows
-    { imported_count: touched_accounts.size }
+    { imported_count: commit_all_rows }
   end
 
   private
 
+  # Returns the number of rows actually committed (i.e. not dropped), which
+  # is not the same as the number of accounts touched: several rows can
+  # target the same account, and each still counts as one imported row.
   def commit_all_rows
     ActiveRecord::Base.transaction do
-      touched_accounts = collect_touched_accounts
-      resolve_balances(touched_accounts)
-      touched_accounts
+      committed_accounts = rows.map { |row| commit_row(row) }.compact
+      resolve_balances(committed_accounts.uniq)
+      committed_accounts.size
     end
-  end
-
-  def collect_touched_accounts
-    rows.map { |row| commit_row(row) }.compact.uniq
   end
 
   def resolve_balances(accounts)
