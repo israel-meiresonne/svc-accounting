@@ -41,6 +41,8 @@ class Transactions::Csv::Format::FromRevolut
 
   INTERNAL_TRANSFER_CATEGORY = "Transfers"
 
+  COUNTERPARTY_OVERRIDES_PATH = Rails.root.join("config", "transaction_csv_formatting", "revolut_counterparties.yml")
+
   initialize_with_keyword_params :user, :csv_rows
 
   def run
@@ -127,13 +129,38 @@ class Transactions::Csv::Format::FromRevolut
   end
 
   def external_classification(row)
-    resolved = resolve_counterparty(row)
+    resolved = resolved_counterparty(row)
 
     {
       category: assign_category(row, resolved[:counterparty_name]) || "",
       counterparty_name: resolved[:counterparty_name],
       counterparty_type: resolved[:counterparty_type]
     }
+  end
+
+  def resolved_counterparty(row)
+    override = override_for(row)
+    return override if override
+
+    resolved = resolve_counterparty(row)
+    return resolved if resolved[:counterparty_name].present?
+
+    default_counterparty(row)
+  end
+
+  def override_for(row)
+    entry = counterparty_overrides.find { |candidate| row["Description"].downcase.include?(candidate["match"].downcase) }
+    return unless entry
+
+    { counterparty_name: entry["name"], counterparty_type: entry["type"] }
+  end
+
+  def default_counterparty(row)
+    { counterparty_name: row["Description"].to_s.strip.squeeze(" "), counterparty_type: "company" }
+  end
+
+  def counterparty_overrides
+    @counterparty_overrides ||= YAML.load_file(COUNTERPARTY_OVERRIDES_PATH)
   end
 
   def resolve_counterparty(row)
@@ -145,7 +172,7 @@ class Transactions::Csv::Format::FromRevolut
   end
 
   def internal_transfer?(row, index)
-    internal_transfer_indices.include?(index) || KNOWN_ENTITIES.key?(row["Description"])
+    row["Type"] == "Exchange" || internal_transfer_indices.include?(index) || KNOWN_ENTITIES.key?(row["Description"])
   end
 
   def internal_transfer_indices

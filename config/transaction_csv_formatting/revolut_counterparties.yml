@@ -1,0 +1,104 @@
+# Ordered top to bottom: the first entry whose `match` is a case-insensitive
+# substring of a row's raw Revolut description wins. More specific patterns
+# (e.g. "Bolt Food") are listed before the shorter, more generic patterns
+# they would otherwise be swallowed by (e.g. "Bolt"), so ordering matters,
+# do not alphabetize or reorder this file.
+#
+# Documented in .claude/reports/2-revolut-transaction-formatting/7-counterparty-normalization-mapping.md,
+# including why each cluster was merged and why some look-alikes deliberately were not.
+- match: "Israël Meiresonne"
+  type: contact
+  name: "Israel Meiresonne"
+- match: "Israel Meiresonne"
+  type: contact
+  name: "Israel Meiresonne"
+- match: "MEIRESONNE ISRAEL"
+  type: contact
+  name: "Israel Meiresonne"
+- match: "JULIANA MEIRESONNE"
+  type: contact
+  name: "Juliana Meiresonne"
+- match: "MEIRESONNE JULIANA"
+  type: contact
+  name: "Juliana Meiresonne"
+- match: "Anne-Marie Anna Meiresonne"
+  type: contact
+  name: "Anne-Marie Meiresonne"
+- match: "MEIRESONNE ANNE-MARIE"
+  type: contact
+  name: "Anne-Marie Meiresonne"
+- match: "Emmanuelle Meiresonne"
+  type: contact
+  name: "Emmanuelle Meiresonne"
+- match: "MEIRESONNE EMMANUELLE"
+  type: contact
+  name: "Emmanuelle Meiresonne"
+- match: "Dalhia Mukenge Nsita"
+  type: contact
+  name: "Dalhia Mukenge Nsita"
+- match: "MUKENGE NSITA DALHIA"
+  type: contact
+  name: "Dalhia Mukenge Nsita"
+- match: "Kastytis Baltaduonis"
+  type: contact
+  name: "Kastytis Baltaduonis"
+- match: "BALTADUONIS KASTYTIS"
+  type: contact
+  name: "Kastytis Baltaduonis"
+- match: "Žana Balauš"
+  type: contact
+  name: "Žana Balauš"
+- match: "Bolt Food"
+  type: company
+  name: "Bolt Food"
+- match: "Uber Eats"
+  type: company
+  name: "Uber Eats"
+- match: "bolt.eu/d/"
+  type: company
+  name: "Bolt"
+- match: "Bolt"
+  type: company
+  name: "Bolt"
+- match: "Uber"
+  type: company
+  name: "Uber"
+- match: "VINTED GO"
+  type: company
+  name: "Vinted Go, UAB"
+- match: "VINTED, UAB"
+  type: company
+  name: "Vinted, UAB"
+- match: "Vinted"
+  type: company
+  name: "Vinted"
+- match: "Barbora"
+  type: company
+  name: "Barbora"
+- match: "Telia"
+  type: company
+  name: "Telia Lietuva, AB"
+- match: "Ežys"
+  type: company
+  name: "Ežys"
+- match: "ezys.lt"
+  type: company
+  name: "Ežys"
+- match: "Noise"
+  type: company
+  name: "Noise"
+- match: "Apollo Kino"
+  type: company
+  name: "Apollo Kino"
+- match: "APOLLO KINAS"
+  type: company
+  name: "Apollo Kino"
+- match: "iDeal"
+  type: company
+  name: "iDeal"
+- match: "Celso Entertainme"
+  type: company
+  name: "Celso Entertainment"
+- match: "International House Vil"
+  type: company
+  name: "International House Vilnius"

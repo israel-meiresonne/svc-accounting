@@ -29,10 +29,10 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
     CSV.parse(csv_string, headers: true)
   end
 
-  context "with a plain card payment" do
+  context "with a plain card payment whose merchant matches no override or existing user" do
     let(:csv_rows) { csv_table([ revolut_row ]) }
 
-    it "returns a single formatted row with a blank category and counterparty" do
+    it "defaults the counterparty to the merchant name as a company, with a blank category" do
       expect(subject).to eq(
         [
           {
@@ -43,8 +43,8 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
             category: "",
             description: "Tesco Store",
             account: "Revolut Current EUR",
-            counterparty_type: "",
-            counterparty_name: "",
+            counterparty_type: "company",
+            counterparty_name: "Tesco Store",
             counterparty_email: ""
           }
         ]
@@ -119,6 +119,20 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
     end
   end
 
+  context "with an Exchange row that is not part of a zero-sum pair (a cross-currency conversion)" do
+    let(:csv_rows) do
+      csv_table([ revolut_row("Type" => "Exchange", "Description" => "Exchanged to USD", "Amount" => "53.28") ])
+    end
+
+    it "categorizes it as Transfers with a blank counterparty rather than a fake company name" do
+      expect(Transactions::Csv::Format::ResolveCounterparty).not_to receive(:for)
+
+      expect(subject.first[:category]).to eq("Transfers")
+      expect(subject.first[:counterparty_name]).to eq("")
+      expect(subject.first[:counterparty_type]).to eq("")
+    end
+  end
+
   context "with a Revolut Bank UAB row that is not part of a zero-sum pair" do
     let(:csv_rows) { csv_table([ revolut_row("Description" => "Revolut Bank UAB", "Amount" => "-5.00") ]) }
 
@@ -141,6 +155,32 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
       expect(subject.first[:counterparty_name]).to eq("Jane Merchant")
       expect(subject.first[:counterparty_type]).to eq("contact")
       expect(subject.first[:category]).to eq("Groceries")
+    end
+  end
+
+  context "with a description matching a counterparty override for a person name variant" do
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Payment from MEIRESONNE ANNE-MARIE") ]) }
+
+    it "normalizes it to the canonical name from the override config, without needing an existing user" do
+      expect(subject.first[:counterparty_name]).to eq("Anne-Marie Meiresonne")
+      expect(subject.first[:counterparty_type]).to eq("contact")
+    end
+  end
+
+  context "with a description matching a counterparty override for a company name variant" do
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Uab Barbora Akropolisx500") ]) }
+
+    it "normalizes it to the canonical company name" do
+      expect(subject.first[:counterparty_name]).to eq("Barbora")
+      expect(subject.first[:counterparty_type]).to eq("company")
+    end
+  end
+
+  context "with a description that would collide with a shorter override pattern" do
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Bolt Food") ]) }
+
+    it "matches the more specific override rather than the generic Bolt entry" do
+      expect(subject.first[:counterparty_name]).to eq("Bolt Food")
     end
   end
 
