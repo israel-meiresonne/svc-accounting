@@ -152,7 +152,13 @@ class Transactions::Csv::Format::FromRevolut
     entry = counterparty_overrides.find { |candidate| row["Description"].downcase.include?(candidate["match"].downcase) }
     return unless entry
 
-    { counterparty_name: entry["name"], counterparty_type: entry["type"] }
+    existing = existing_user_for_canonical_name(entry["name"])
+
+    { counterparty_name: entry["name"], counterparty_type: existing&.type || entry["type"] }
+  end
+
+  def existing_user_for_canonical_name(name)
+    User.find { |candidate| candidate.display_name.strip.downcase == name.downcase }
   end
 
   def default_counterparty(row)

@@ -176,6 +176,16 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
     end
   end
 
+  context "with a description matching a person-name override who is also a real app user" do
+    let!(:israel) { create(:user, first_name: "Israel", last_name: "Meiresonne") }
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Payment from MEIRESONNE ISRAEL") ]) }
+
+    it "uses that user's real type instead of the override config's default" do
+      expect(subject.first[:counterparty_name]).to eq("Israel Meiresonne")
+      expect(subject.first[:counterparty_type]).to eq("user")
+    end
+  end
+
   context "with a description that would collide with a shorter override pattern" do
     let(:csv_rows) { csv_table([ revolut_row("Description" => "Bolt Food") ]) }
 
