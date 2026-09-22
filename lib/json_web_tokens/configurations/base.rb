@@ -10,6 +10,6 @@ class JsonWebTokens::Configurations::Base
   private
 
   def secret
-    ENV.fetch('JWT_SECRET_KEY')
+    ENV.fetch("JWT_SECRET_KEY")
   end
 end
