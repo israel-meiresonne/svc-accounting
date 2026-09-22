@@ -28,14 +28,21 @@ RSpec.describe "transactions:csv:format", type: :rake do
     FileUtils.rm_f(file_path)
   end
 
-  it "writes the formatted CSV to the expected output path with the expected row count" do
+  it "writes the formatted CSV to the expected output path with the expected row count and values" do
     subject
 
     output_file = output_directory.join("01-formatted-from-revolut.csv")
     rows = CSV.read(output_file, headers: true)
 
-    expect(rows.headers).to eq(Transactions::Csv::Format::OUTPUT_COLUMNS)
+    expect(rows.headers).to eq(Transactions::Csv::Format::OUTPUT_COLUMNS.map(&:to_s))
     expect(rows.size).to eq(1)
+    expect(rows.first.to_h).to include(
+      "occurred_at" => "2024-01-01 10:00:05",
+      "amount" => "-12.50",
+      "currency" => "EUR",
+      "payment_method" => "credit_card",
+      "description" => "Tesco Store"
+    )
   end
 
   context "with an unknown user_code" do

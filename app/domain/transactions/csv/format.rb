@@ -1,5 +1,5 @@
 module Transactions::Csv::Format
-  OUTPUT_COLUMNS = %w[
+  OUTPUT_COLUMNS = %i[
     occurred_at
     amount
     currency
