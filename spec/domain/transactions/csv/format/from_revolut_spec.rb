@@ -1,0 +1,195 @@
+require "rails_helper"
+
+RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
+  subject { described_class.for(user: user, csv_rows: csv_rows) }
+
+  let!(:user) { create(:user) }
+
+  def revolut_row(overrides = {})
+    {
+      "Type" => "Card Payment",
+      "Product" => "Current",
+      "Started Date" => "2024-01-01 10:00:00",
+      "Completed Date" => "2024-01-01 10:00:05",
+      "Description" => "Tesco Store",
+      "Amount" => "-12.50",
+      "Fee" => "0.00",
+      "Currency" => "EUR",
+      "State" => "COMPLETED",
+      "Balance" => "100.00"
+    }.merge(overrides)
+  end
+
+  def csv_table(rows, headers: described_class::EXPECTED_COLUMNS)
+    csv_string = CSV.generate do |csv|
+      csv << headers
+      rows.each { |row| csv << headers.map { |header| row.fetch(header) } }
+    end
+
+    CSV.parse(csv_string, headers: true)
+  end
+
+  context "with a plain card payment" do
+    let(:csv_rows) { csv_table([ revolut_row ]) }
+
+    it "returns a single formatted row with a blank category and counterparty" do
+      expect(subject).to eq(
+        [
+          {
+            occurred_at: "2024-01-01 10:00:05",
+            amount: "-12.50",
+            currency: "EUR",
+            payment_method: "credit_card",
+            category: "",
+            description: "Tesco Store",
+            account: "Revolut Current EUR",
+            counterparty_type: "",
+            counterparty_name: "",
+            counterparty_email: ""
+          }
+        ]
+      )
+    end
+  end
+
+  context "with a REVERTED row" do
+    let(:csv_rows) { csv_table([ revolut_row("State" => "REVERTED"), revolut_row ]) }
+
+    it "drops the reverted row" do
+      expect(subject.size).to eq(1)
+      expect(subject.first[:description]).to eq("Tesco Store")
+    end
+  end
+
+  context "with a PENDING row" do
+    let(:csv_rows) { csv_table([ revolut_row.merge("State" => "PENDING"), revolut_row ]) }
+
+    it "drops the pending row" do
+      expect(subject.size).to eq(1)
+      expect(subject.first[:description]).to eq("Tesco Store")
+    end
+  end
+
+  context "with an Exchange row that has a fee" do
+    let(:csv_rows) do
+      csv_table([ revolut_row(
+        "Type" => "Exchange",
+        "Description" => "Exchanged to USD",
+        "Amount" => "100.00",
+        "Fee" => "1.00"
+      ) ])
+    end
+
+    it "splits into two rows sharing the same occurred_at" do
+      expect(subject.map { |row| row[:amount] }).to eq([ "100.00", "-1.00" ])
+      expect(subject.map { |row| row[:occurred_at] }.uniq).to eq([ "2024-01-01 10:00:05" ])
+    end
+  end
+
+  context "with a Charge row" do
+    let(:csv_rows) do
+      csv_table([ revolut_row(
+        "Type" => "Charge",
+        "Description" => "Monthly fee",
+        "Amount" => "0.00",
+        "Fee" => "2.00"
+      ) ])
+    end
+
+    it "emits a single row using the negated fee as the amount" do
+      expect(subject.size).to eq(1)
+      expect(subject.first[:amount]).to eq("-2.00")
+    end
+  end
+
+  context "with a same-timestamp, same-currency, opposite-amount pair" do
+    let(:csv_rows) do
+      csv_table([
+        revolut_row("Description" => "Pocket Withdrawal", "Amount" => "-20.00"),
+        revolut_row("Description" => "Pocket Top-up", "Amount" => "20.00")
+      ])
+    end
+
+    it "categorizes both rows as Transfers without resolving counterparty or category" do
+      expect(Transactions::Csv::Format::ResolveCounterparty).not_to receive(:for)
+      expect(Transactions::Csv::Format::AssignCategory).not_to receive(:for)
+
+      expect(subject.map { |row| row[:category] }).to eq(%w[Transfers Transfers])
+      expect(subject.map { |row| row[:counterparty_name] }).to eq([ "", "" ])
+    end
+  end
+
+  context "with a Revolut Bank UAB row that is not part of a zero-sum pair" do
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Revolut Bank UAB", "Amount" => "-5.00") ]) }
+
+    it "categorizes it as Transfers with the known entity as counterparty" do
+      expect(subject.first[:category]).to eq("Transfers")
+      expect(subject.first[:counterparty_name]).to eq("Revolut Bank UAB")
+    end
+  end
+
+  context "with a non-internal-transfer row whose counterparty must be resolved before its category" do
+    let!(:merchant) { create(:contact, first_name: "Jane", last_name: "Merchant") }
+    let!(:prior_account) { create(:account, user: user) }
+    let!(:prior_transaction) do
+      create(:transaction, account: prior_account, counterparty: merchant, description: "To Jane Merchant",
+                            category: "Groceries")
+    end
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "To Jane Merchant") ]) }
+
+    it "resolves the counterparty and then looks up the matching category" do
+      expect(subject.first[:counterparty_name]).to eq("Jane Merchant")
+      expect(subject.first[:counterparty_type]).to eq("contact")
+      expect(subject.first[:category]).to eq("Groceries")
+    end
+  end
+
+  context "with an unrecognized Type" do
+    let(:csv_rows) { csv_table([ revolut_row("Type" => "Some New Type") ]) }
+
+    it "raises InvalidCsvColumnsError" do
+      expect { subject }.to raise_error(Transactions::Errors::InvalidCsvColumnsError)
+    end
+  end
+
+  context "with a CSV missing an expected column" do
+    let(:csv_rows) do
+      CSV.parse(CSV.generate { |csv| csv << (described_class::EXPECTED_COLUMNS - [ "Balance" ]) }, headers: true)
+    end
+
+    it "raises InvalidCsvColumnsError before processing any row" do
+      expect(Transactions::Csv::Format::ResolveCounterparty).not_to receive(:for)
+
+      expect { subject }.to raise_error(Transactions::Errors::InvalidCsvColumnsError)
+    end
+  end
+
+  context "with a split fee row alongside a plain row" do
+    let(:csv_rows) do
+      csv_table([
+        revolut_row("Description" => "First Row"),
+        revolut_row("Type" => "Exchange", "Description" => "Second Row", "Amount" => "30.00", "Fee" => "3.00"),
+        revolut_row("Description" => "Third Row")
+      ])
+    end
+
+    it "preserves input order with a split row's second half immediately after its first" do
+      expect(subject.map { |row| row[:description] }).to eq(
+        [ "First Row", "Second Row", "Second Row", "Third Row" ]
+      )
+      expect(subject.map { |row| row[:amount] }).to eq(
+        [ "-12.50", "30.00", "-3.00", "-12.50" ]
+      )
+    end
+
+    it "always sets non-blank occurred_at, amount, currency, description and payment_method" do
+      subject.each do |row|
+        expect(row[:occurred_at]).to be_present
+        expect(row[:amount]).to be_present
+        expect(row[:currency]).to be_present
+        expect(row[:description]).to be_present
+        expect(row[:payment_method]).to be_present
+      end
+    end
+  end
+end
