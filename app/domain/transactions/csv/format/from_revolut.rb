@@ -121,11 +121,20 @@ class Transactions::Csv::Format::FromRevolut
   end
 
   def transfer_classification(row)
-    {
-      category: INTERNAL_TRANSFER_CATEGORY,
-      counterparty_name: KNOWN_ENTITIES[row["Description"]] || "",
-      counterparty_type: ""
-    }
+    transfer_counterparty(row).merge(category: INTERNAL_TRANSFER_CATEGORY)
+  end
+
+  def transfer_counterparty(row)
+    known_name = KNOWN_ENTITIES[row["Description"]]
+    return known_entity_counterparty(known_name) if known_name
+
+    { counterparty_name: user.display_name, counterparty_type: user.type }
+  end
+
+  def known_entity_counterparty(name)
+    existing = existing_user_for_canonical_name(name)
+
+    { counterparty_name: name, counterparty_type: existing&.type || "company" }
   end
 
   def external_classification(row)

@@ -110,12 +110,13 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
       ])
     end
 
-    it "categorizes both rows as Transfers without resolving counterparty or category" do
+    it "categorizes both rows as Transfers with the acting user as counterparty, without resolving category" do
       expect(Transactions::Csv::Format::ResolveCounterparty).not_to receive(:for)
       expect(Transactions::Csv::Format::AssignCategory).not_to receive(:for)
 
       expect(subject.map { |row| row[:category] }).to eq(%w[Transfers Transfers])
-      expect(subject.map { |row| row[:counterparty_name] }).to eq([ "", "" ])
+      expect(subject.map { |row| row[:counterparty_name] }).to eq([ user.display_name, user.display_name ])
+      expect(subject.map { |row| row[:counterparty_type] }).to eq([ user.type, user.type ])
     end
   end
 
@@ -124,21 +125,32 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
       csv_table([ revolut_row("Type" => "Exchange", "Description" => "Exchanged to USD", "Amount" => "53.28") ])
     end
 
-    it "categorizes it as Transfers with a blank counterparty rather than a fake company name" do
+    it "categorizes it as Transfers with the acting user as counterparty, not a fake company name" do
       expect(Transactions::Csv::Format::ResolveCounterparty).not_to receive(:for)
 
       expect(subject.first[:category]).to eq("Transfers")
-      expect(subject.first[:counterparty_name]).to eq("")
-      expect(subject.first[:counterparty_type]).to eq("")
+      expect(subject.first[:counterparty_name]).to eq(user.display_name)
+      expect(subject.first[:counterparty_type]).to eq(user.type)
     end
   end
 
   context "with a Revolut Bank UAB row that is not part of a zero-sum pair" do
     let(:csv_rows) { csv_table([ revolut_row("Description" => "Revolut Bank UAB", "Amount" => "-5.00") ]) }
 
-    it "categorizes it as Transfers with the known entity as counterparty" do
+    it "categorizes it as Transfers with the known entity as counterparty, defaulting to type company" do
       expect(subject.first[:category]).to eq("Transfers")
       expect(subject.first[:counterparty_name]).to eq("Revolut Bank UAB")
+      expect(subject.first[:counterparty_type]).to eq("company")
+    end
+  end
+
+  context "with a Revolut Bank UAB row when that exact name already exists as a non-company user" do
+    let!(:revolut_entity) { create(:contact, first_name: "Revolut Bank", last_name: "UAB") }
+    let(:csv_rows) { csv_table([ revolut_row("Description" => "Revolut Bank UAB", "Amount" => "-5.00") ]) }
+
+    it "uses that user's real type instead of defaulting to company" do
+      expect(subject.first[:counterparty_name]).to eq("Revolut Bank UAB")
+      expect(subject.first[:counterparty_type]).to eq("contact")
     end
   end
 
