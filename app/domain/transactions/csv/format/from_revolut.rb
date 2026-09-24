@@ -220,6 +220,6 @@ class Transactions::Csv::Format::FromRevolut
   end
 
   def amounts_cancel?(row, other_row)
-    row["Amount"].to_f == -other_row["Amount"].to_f
+    row["Amount"].to_f != 0.0 && row["Amount"].to_f == -other_row["Amount"].to_f
   end
 end

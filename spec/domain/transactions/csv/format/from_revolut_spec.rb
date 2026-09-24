@@ -120,6 +120,20 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
     end
   end
 
+  context "with two unrelated rows that both happen to have a zero Amount, same timestamp and currency" do
+    let(:csv_rows) do
+      csv_table([
+        revolut_row("Type" => "Charge", "Description" => "Card Delivery Fee", "Amount" => "0.00", "Fee" => "6.99"),
+        revolut_row("Type" => "Charge", "Description" => "Card Issuance Fee", "Amount" => "0.00", "Fee" => "5.99")
+      ])
+    end
+
+    it "does not treat a coincidental zero-amount match as an internal-account-transfer pair" do
+      expect(subject.map { |row| row[:category] }).to eq([ "", "" ])
+      expect(subject.map { |row| row[:counterparty_type] }).to eq(%w[company company])
+    end
+  end
+
   context "with an Exchange row that is not part of a zero-sum pair (a cross-currency conversion)" do
     let(:csv_rows) do
       csv_table([ revolut_row("Type" => "Exchange", "Description" => "Exchanged to USD", "Amount" => "53.28") ])
