@@ -10,9 +10,6 @@ class Transactions::Csv::Import::Commit
 
   private
 
-  # Returns the number of rows actually committed (i.e. not dropped), which
-  # is not the same as the number of accounts touched: several rows can
-  # target the same account, and each still counts as one imported row.
   def commit_all_rows
     ActiveRecord::Base.transaction do
       committed_accounts = rows.map { |row| commit_row(row) }.compact
