@@ -39,7 +39,7 @@ RSpec.describe Transactions::Csv::Format::FromRevolut, type: :interactor do
             occurred_at: "2024-01-01 10:00:05",
             amount: "-12.50",
             currency: "EUR",
-            payment_method: "credit_card",
+            payment_method: "debit_card",
             category: "",
             description: "Tesco Store",
             account: "Revolut Current EUR",

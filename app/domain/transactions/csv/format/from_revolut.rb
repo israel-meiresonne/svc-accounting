@@ -20,11 +20,11 @@ class Transactions::Csv::Format::FromRevolut
   ].freeze
 
   PAYMENT_METHOD_BY_TYPE = {
-    "Card Payment" => "credit_card",
-    "Card Refund" => "credit_card",
-    "CARD_CREDIT" => "credit_card",
-    "Card Chargeback" => "credit_card",
-    "Rev Payment" => "credit_card",
+    "Card Payment" => "debit_card",
+    "Card Refund" => "debit_card",
+    "CARD_CREDIT" => "debit_card",
+    "Card Chargeback" => "debit_card",
+    "Rev Payment" => "debit_card",
     "ATM" => "cash",
     "Transfer" => "bank_transfer",
     "Deposit" => "bank_transfer",

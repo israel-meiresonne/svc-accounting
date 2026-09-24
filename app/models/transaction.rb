@@ -1,7 +1,13 @@
 class Transaction < ApplicationRecord
   include SoftDeletable
 
-  enum :payment_method, { cash: "cash", credit_card: "credit_card", bank_transfer: "bank_transfer", other: "other" }
+  enum :payment_method, {
+    cash: "cash",
+    debit_card: "debit_card",
+    credit_card: "credit_card",
+    bank_transfer: "bank_transfer",
+    other: "other"
+  }
 
   belongs_to :account
   belongs_to :counterparty, class_name: "User"

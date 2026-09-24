@@ -55,6 +55,7 @@ RSpec.describe Transaction, type: :model do
     it "has the payment_method values" do
       expect(described_class.payment_methods).to eq(
         "cash" => "cash",
+        "debit_card" => "debit_card",
         "credit_card" => "credit_card",
         "bank_transfer" => "bank_transfer",
         "other" => "other",
