@@ -21,7 +21,7 @@ class Transactions::Csv::Format::ResolveCounterparty
     return existing_user.type if existing_user
     return "" if extracted_name.blank?
 
-    company_suffix?(extracted_name) ? "company" : "contact"
+    single_person_name?(extracted_name) ? "contact" : "company"
   end
 
   def existing_user
@@ -55,7 +55,7 @@ class Transactions::Csv::Format::ResolveCounterparty
     @extracted_name = description[EXTRACTION_PATTERN, 1]
   end
 
-  def company_suffix?(name)
-    name.match?(COMPANY_SUFFIX_PATTERN)
+  def single_person_name?(name)
+    name.split.size > 1 && !name.match?(COMPANY_SUFFIX_PATTERN)
   end
 end

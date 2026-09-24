@@ -27,8 +27,8 @@ RSpec.describe Transactions::Csv::Format::ResolveCounterparty, type: :interactor
     let(:description) { "To Egidijus" }
     let!(:contact) { create(:contact, first_name: "Egidijus", last_name: "Bulevičius") }
 
-    it "does not match that contact" do
-      expect(subject).to eq(counterparty_name: "Egidijus", counterparty_type: "contact")
+    it "does not match that contact and falls back to company, since a contact record requires a last name" do
+      expect(subject).to eq(counterparty_name: "Egidijus", counterparty_type: "company")
     end
   end
 
@@ -65,6 +65,14 @@ RSpec.describe Transactions::Csv::Format::ResolveCounterparty, type: :interactor
 
     it "resolves counterparty_type as company" do
       expect(subject).to eq(counterparty_name: "Acme UAB", counterparty_type: "company")
+    end
+  end
+
+  context "when no existing user matches and the extracted name is a single word without a company suffix" do
+    let(:description) { "Payment from Electrabel" }
+
+    it "resolves counterparty_type as company, since a contact record requires a first and last name" do
+      expect(subject).to eq(counterparty_name: "Electrabel", counterparty_type: "company")
     end
   end
 
