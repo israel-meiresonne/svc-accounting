@@ -96,6 +96,9 @@
 - match: "iDeal"
   type: company
   name: "iDeal"
+- match: "C&c Lithuania (panorama)"
+  type: company
+  name: "iDeal"
 - match: "Celso Entertainme"
   type: company
   name: "Celso Entertainment"
