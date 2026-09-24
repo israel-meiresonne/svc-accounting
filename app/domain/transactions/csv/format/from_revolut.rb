@@ -41,7 +41,14 @@ class Transactions::Csv::Format::FromRevolut
 
   INTERNAL_TRANSFER_CATEGORY = "Transfers"
 
-  COUNTERPARTY_OVERRIDES_PATH = Rails.root.join("config", "transaction_csv_formatting", "revolut_counterparties.yml")
+  # config/assets/transactions/csv_formatting/revolut_counterparties.yml
+  COUNTERPARTY_OVERRIDES_PATH = Rails.root.join(
+    "config",
+    "assets",
+    "transactions",
+    "csv_formatting",
+    "revolut_counterparties.yml"
+  )
 
   initialize_with_keyword_params :user, :csv_rows
 

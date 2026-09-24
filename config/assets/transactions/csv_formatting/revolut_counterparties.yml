@@ -71,7 +71,7 @@
   name: "Vinted, UAB"
 - match: "Vinted"
   type: company
-  name: "Vinted"
+  name: "Vinted, UAB"
 - match: "Barbora"
   type: company
   name: "Barbora"
@@ -102,3 +102,24 @@
 - match: "International House Vil"
   type: company
   name: "International House Vilnius"
+- match: "www.revolut.com/*London"
+  type: company
+  name: "Revolut Bank UAB"
+- match: "Binance"
+  type: company
+  name: "Binance Holdings Limited"
+- match: "Daiktams.lt"
+  type: company
+  name: "DAIKTAMS.LT UAB"
+- match: "DHL"
+  type: company
+  name: "DHL AG"
+- match: "Makro"
+  type: company
+  name: "Makro"
+- match: "Stripe"
+  type: company
+  name: "Stripe LLC"
+- match: "THE CURRENCY CLOUD"
+  type: company
+  name: "THE CURRENCY CLOUD LIMITED"
