@@ -31,7 +31,7 @@ class Transaction < ApplicationRecord
   private
 
   def currency_matches_account
-    return if account.nil? || currency == account.currency
+    return if account.nil? || currency.to_s.downcase == account.currency.downcase
 
     errors.add(:currency, "must match the account's currency (#{account&.currency})")
   end
