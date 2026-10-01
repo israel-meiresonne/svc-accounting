@@ -7,7 +7,7 @@ RSpec.describe Transactions::CalculateStats, type: :interactor do
   let!(:income_transaction) { create(:transaction, account: account, amount: 300, occurred_at: "2026-01-10T12:00:00Z") }
   let!(:expense_transaction) { create(:transaction, account: account, amount: -120, occurred_at: "2026-01-15T12:00:00Z") }
   let!(:out_of_range_transaction) { create(:transaction, account: account, amount: 999, occurred_at: "2026-02-10T12:00:00Z") }
-  let(:params) { { account: account, from: "2026-01-01T00:00:00Z", to: "2026-01-31T23:59:59Z" } }
+  let(:params) { { account: account, from: "2026-01-01T00:00:00Z", to: "2026-01-31T23:59:59Z", included_categories: nil } }
 
   it "sums the positive amounts into total_income" do
     expect(subject[:total_income].to_s).to eq("300.00")
@@ -48,7 +48,7 @@ RSpec.describe Transactions::CalculateStats, type: :interactor do
     let!(:income_transaction) { create(:transaction, account: account, amount: 300, occurred_at: "2028-02-29T12:00:00Z") }
     let!(:expense_transaction) { create(:transaction, account: account, amount: -120, occurred_at: "2028-02-29T23:00:00Z") }
     let!(:out_of_range_transaction) { create(:transaction, account: account, amount: 999, occurred_at: "2028-03-01T00:00:01Z") }
-    let(:params) { { account: account, from: "2028-02-01T00:00:00Z", to: "2028-02-29T23:59:59Z" } }
+    let(:params) { { account: account, from: "2028-02-01T00:00:00Z", to: "2028-02-29T23:59:59Z", included_categories: nil } }
 
     it "includes the leap-day income" do
       expect(subject[:total_income].to_s).to eq("300.00")
@@ -63,8 +63,48 @@ RSpec.describe Transactions::CalculateStats, type: :interactor do
     end
   end
 
+  context "when included_categories is given" do
+    let!(:income_transaction) { create(:transaction, account: account, amount: 300, category: "Salary", occurred_at: "2026-01-10T12:00:00Z") }
+    let!(:expense_transaction) { create(:transaction, account: account, amount: -120, category: "Rent", occurred_at: "2026-01-15T12:00:00Z") }
+    let!(:other_expense_transaction) { create(:transaction, account: account, amount: -50, category: "Transfers", occurred_at: "2026-01-16T12:00:00Z") }
+
+    context "with one category" do
+      let(:params) { super().merge(included_categories: [ "Rent" ]) }
+
+      it "narrows total_income, total_expenses and net_balance to that category" do
+        expect(subject.values.map(&:to_s)).to eq([ "0.00", "120.00", "-120.00" ])
+      end
+    end
+
+    context "with several categories" do
+      let(:params) { super().merge(included_categories: [ "Salary", "Rent" ]) }
+
+      it "narrows all three figures to the union of those categories" do
+        expect(subject.values.map(&:to_s)).to eq([ "300.00", "120.00", "180.00" ])
+      end
+    end
+
+    context "with a category that matches nothing" do
+      let(:params) { super().merge(included_categories: [ "Nope" ]) }
+
+      it "returns zero for all three figures" do
+        expect(subject.values.map(&:to_s)).to all(eq("0.00"))
+      end
+    end
+
+    [ nil, [] ].each do |blank_value|
+      context "with included_categories set to #{blank_value.inspect}" do
+        let(:params) { super().merge(included_categories: blank_value) }
+
+        it "applies no filter" do
+          expect(subject.values.map(&:to_s)).to eq([ "300.00", "170.00", "130.00" ])
+        end
+      end
+    end
+  end
+
   context "when the range holds no transactions" do
-    let(:params) { { account: account, from: "2027-01-01T00:00:00Z", to: "2027-01-31T23:59:59Z" } }
+    let(:params) { { account: account, from: "2027-01-01T00:00:00Z", to: "2027-01-31T23:59:59Z", included_categories: nil } }
 
     it "returns zeroed figures" do
       expect(subject.values.map(&:to_s)).to all(eq("0.00"))
