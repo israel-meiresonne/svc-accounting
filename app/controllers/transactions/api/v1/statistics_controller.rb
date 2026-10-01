@@ -5,7 +5,7 @@ class Transactions::Api::V1::StatisticsController < ApplicationController
       from: Date.iso8601(params[:from]),
       to: Date.iso8601(params[:to]),
       account_codes: params[:account_codes],
-      category: params[:category],
+      included_categories: params[:included_categories],
       payment_method: params[:payment_method],
     )
   end

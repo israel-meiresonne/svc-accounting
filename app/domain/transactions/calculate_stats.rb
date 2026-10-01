@@ -1,7 +1,7 @@
 class Transactions::CalculateStats
   include Interactor::Initializer
 
-  initialize_with_keyword_params :account, :from, :to
+  initialize_with_keyword_params :account, :from, :to, :included_categories
 
   def run
     {
@@ -18,7 +18,13 @@ class Transactions::CalculateStats
   end
 
   def transactions_in_range
-    @transactions_in_range ||= account.transactions.active.where(occurred_at: from..to)
+    @transactions_in_range ||= filtered_by_category(account.transactions.active.where(occurred_at: from..to))
+  end
+
+  def filtered_by_category(transactions)
+    return transactions if included_categories.blank?
+
+    transactions.where(category: included_categories)
   end
 
   def income
