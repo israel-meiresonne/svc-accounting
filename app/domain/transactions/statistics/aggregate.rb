@@ -1,7 +1,7 @@
 class Transactions::Statistics::Aggregate
   include Interactor::Initializer
 
-  initialize_with_keyword_params :current_user, :from, :to, :account_codes, :category, :payment_method
+  initialize_with_keyword_params :current_user, :from, :to, :account_codes, :included_categories, :payment_method
 
   def run
     {
@@ -46,7 +46,7 @@ class Transactions::Statistics::Aggregate
 
   def filtered_transactions(from:, to:)
     transactions = Transaction.active.where(account: accounts).in_range(from, to)
-    transactions = transactions.where(category: category) if category.present?
+    transactions = transactions.where(category: included_categories) if included_categories.present?
     transactions = transactions.where(payment_method: payment_method) if payment_method.present?
     transactions
   end

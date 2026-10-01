@@ -20,7 +20,7 @@ RSpec.describe "Transactions Index and Bulk Actions API", type: :request do
       parameter name: :from, in: :query, type: :string, required: false
       parameter name: :to, in: :query, type: :string, required: false
       parameter name: "filter[account_codes][]", in: :query, type: :array, items: { type: :string }, required: false
-      parameter name: "filter[category]", in: :query, type: :string, required: false
+      parameter name: "filter[included_categories][]", in: :query, type: :array, items: { type: :string }, required: false
       parameter name: "filter[payment_method]", in: :query, type: :string, required: false
       parameter name: :sort, in: :query, type: :string, required: false
       parameter name: :order, in: :query, type: :string, required: false
@@ -53,10 +53,16 @@ RSpec.describe "Transactions Index and Bulk Actions API", type: :request do
           expect(codes_in(response)).to contain_exactly(food_cash.code, food_transfer.code)
         end
 
-        it "filters by category" do
-          get "/api/v1/transactions", params: { filter: { category: "food" } }, headers: headers
+        it "filters by included_categories" do
+          get "/api/v1/transactions", params: { filter: { included_categories: [ "food" ] } }, headers: headers
 
           expect(codes_in(response)).to contain_exactly(food_cash.code, food_transfer.code)
+        end
+
+        it "keeps the union when several included_categories are given" do
+          get "/api/v1/transactions", params: { filter: { included_categories: %w[food rent] } }, headers: headers
+
+          expect(codes_in(response)).to contain_exactly(food_cash.code, rent_transfer.code, food_transfer.code)
         end
 
         it "filters by payment_method" do
@@ -66,7 +72,7 @@ RSpec.describe "Transactions Index and Bulk Actions API", type: :request do
         end
 
         it "combines filters with cumulative AND semantics" do
-          get "/api/v1/transactions", params: { filter: { category: "food", payment_method: "bank_transfer" } }, headers: headers
+          get "/api/v1/transactions", params: { filter: { included_categories: [ "food" ], payment_method: "bank_transfer" } }, headers: headers
 
           expect(codes_in(response)).to contain_exactly(food_transfer.code)
         end

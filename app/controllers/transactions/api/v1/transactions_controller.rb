@@ -18,7 +18,16 @@ class Transactions::Api::V1::TransactionsController < ApplicationController
   end
 
   def stats
-    render json: Transactions::CalculateStats.for(account: owned_account, from: params[:from], to: params[:to]), status: :ok
+    render json: Transactions::CalculateStats.for(
+      account: owned_account,
+      from: params[:from],
+      to: params[:to],
+      included_categories: params[:included_categories]
+    ), status: :ok
+  end
+
+  def categories
+    render json: { categories: Transactions::ListCategories.for(current_user) }, status: :ok
   end
 
   def import_preview

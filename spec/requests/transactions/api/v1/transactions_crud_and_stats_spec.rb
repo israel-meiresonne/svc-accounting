@@ -246,6 +246,7 @@ RSpec.describe "Transactions Create, Update and Stats API", type: :request do
       parameter name: :account_code, in: :query, type: :string, required: true
       parameter name: :from, in: :query, type: :string, required: true
       parameter name: :to, in: :query, type: :string, required: true
+      parameter name: "included_categories[]", in: :query, type: :array, items: { type: :string }, required: false
 
       let(:account_code) { account.code }
       let(:from) { "2026-01-01T00:00:00Z" }
@@ -262,6 +263,20 @@ RSpec.describe "Transactions Create, Update and Stats API", type: :request do
           expect(body["total_income"]).to eq("amount" => "300.00", "currency" => "usd")
           expect(body["total_expenses"]).to eq("amount" => "120.00", "currency" => "usd")
           expect(body["net_balance"]).to eq("amount" => "180.00", "currency" => "usd")
+        end
+      end
+
+      response "200", "narrows every figure to the included_categories" do
+        let("included_categories[]") { [ "Rent" ] }
+        let!(:income_transaction) { create(:transaction, account: account, amount: 300, category: "Salary", occurred_at: "2026-01-10T12:00:00Z") }
+        let!(:expense_transaction) { create(:transaction, account: account, amount: -120, category: "Rent", occurred_at: "2026-01-15T12:00:00Z") }
+
+        run_test! do
+          body = JSON.parse(response.body)
+
+          expect(body["total_income"]["amount"]).to eq("0.00")
+          expect(body["total_expenses"]["amount"]).to eq("120.00")
+          expect(body["net_balance"]["amount"]).to eq("-120.00")
         end
       end
 

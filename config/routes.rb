@@ -19,6 +19,7 @@ Rails.application.routes.draw do
       post "transactions/bulk/export_csv", to: "/transactions/api/v1/transactions#bulk_export_csv"
       post "transactions/bulk/generate_report", to: "/transactions/api/v1/transactions#bulk_generate_report"
       get "transactions/stats", to: "/transactions/api/v1/transactions#stats"
+      get "transactions/categories", to: "/transactions/api/v1/transactions#categories"
       post "transactions", to: "/transactions/api/v1/transactions#create"
       patch "transactions/:code", to: "/transactions/api/v1/transactions#update"
       get "statistics", to: "/transactions/api/v1/statistics#show"

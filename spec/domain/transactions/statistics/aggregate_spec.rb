@@ -13,7 +13,7 @@ RSpec.describe Transactions::Statistics::Aggregate, type: :interactor do
       from: from,
       to: to,
       account_codes: nil,
-      category: nil,
+      included_categories: nil,
       payment_method: nil
     }
   end
@@ -50,6 +50,56 @@ RSpec.describe Transactions::Statistics::Aggregate, type: :interactor do
           { category: "rent", amount: "50.00" }
         ],
       )
+    end
+  end
+
+  context "when included_categories is given" do
+    let!(:salary) { create(:transaction, account: account, amount: 300, currency: "usd", category: "salary", occurred_at: from) }
+    let!(:rent) { create(:transaction, account: account, amount: -50, currency: "usd", category: "rent", occurred_at: from) }
+    let!(:groceries) { create(:transaction, account: account, amount: -20, currency: "usd", category: "groceries", occurred_at: from) }
+
+    context "with one category" do
+      let(:params) { super().merge(included_categories: [ "rent" ]) }
+
+      it "narrows the totals, the net balances and the category breakdowns alike" do
+        expect(subject[:current]).to include(
+          total_income: "0.00",
+          total_expenses: "50.00",
+          net_balance: "-50.00",
+          income_by_category: [],
+          expenses_by_category: [ { category: "rent", amount: "50.00" } ]
+        )
+      end
+
+      it "narrows the forecast net balance along with the rest (the interval is fully elapsed, so it equals net_balance)" do
+        expect(subject[:current][:forecast_net_balance]).to eq("-50.00")
+      end
+    end
+
+    context "with several categories" do
+      let(:params) { super().merge(included_categories: %w[salary groceries]) }
+
+      it "keeps the union of those categories" do
+        expect(subject[:current]).to include(total_income: "300.00", total_expenses: "20.00", net_balance: "280.00")
+      end
+    end
+
+    context "with a category that matches nothing" do
+      let(:params) { super().merge(included_categories: [ "nope" ]) }
+
+      it "returns zero for every total" do
+        expect(subject[:current]).to include(total_income: "0.00", total_expenses: "0.00", net_balance: "0.00")
+      end
+    end
+
+    [ nil, [] ].each do |blank_value|
+      context "with included_categories set to #{blank_value.inspect}" do
+        let(:params) { super().merge(included_categories: blank_value) }
+
+        it "applies no filter" do
+          expect(subject[:current]).to include(total_income: "300.00", total_expenses: "70.00", net_balance: "230.00")
+        end
+      end
     end
   end
 

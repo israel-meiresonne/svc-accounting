@@ -9,7 +9,7 @@ class Transactions::Search
     scoped_transactions
       .then(&method(:filter_by_range))
       .then(&method(:filter_by_account))
-      .then(&method(:filter_by_category))
+      .then(&method(:filter_by_included_categories))
       .then(&method(:filter_by_payment_method))
       .order(sort_column => sort_order)
       .page(page)
@@ -34,10 +34,10 @@ class Transactions::Search
     transactions.where(accounts: { code: filters[:account_codes] })
   end
 
-  def filter_by_category(transactions)
-    return transactions if filters[:category].blank?
+  def filter_by_included_categories(transactions)
+    return transactions if filters[:included_categories].blank?
 
-    transactions.where(category: filters[:category])
+    transactions.where(category: filters[:included_categories])
   end
 
   def filter_by_payment_method(transactions)

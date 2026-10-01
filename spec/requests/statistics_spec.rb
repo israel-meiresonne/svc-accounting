@@ -9,7 +9,7 @@ RSpec.describe "Statistics API", type: :request do
       parameter name: :from, in: :query, type: :string, required: true
       parameter name: :to, in: :query, type: :string, required: true
       parameter name: :account_codes, in: :query, type: :string, required: false
-      parameter name: :category, in: :query, type: :string, required: false
+      parameter name: "included_categories[]", in: :query, type: :array, items: { type: :string }, required: false
       parameter name: :payment_method, in: :query, type: :string, required: false
 
       response "200", "compares a month-length interval against its predecessor" do
@@ -48,13 +48,13 @@ RSpec.describe "Statistics API", type: :request do
         end
       end
 
-      response "200", "filters by category" do
+      response "200", "filters by included_categories" do
         let!(:user) { create(:user, currency: "usd") }
         let!(:account) { create(:account, user: user, currency: "usd") }
         let(:Authorization) { "Bearer #{JsonWebTokens::Encode.for(user.code)}" }
         let(:from) { "2026-08-01" }
         let(:to) { "2026-08-31" }
-        let(:category) { "rent" }
+        let("included_categories[]") { [ "rent" ] }
         let!(:rent) { create(:transaction, account: account, amount: -50, currency: "usd", category: "rent", occurred_at: Date.new(2026, 8, 5)) }
         let!(:groceries) { create(:transaction, account: account, amount: -20, currency: "usd", category: "groceries", occurred_at: Date.new(2026, 8, 5)) }
 
